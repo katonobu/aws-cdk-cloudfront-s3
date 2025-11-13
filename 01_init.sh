@@ -33,7 +33,21 @@ pip install --upgrade pip
 pip list
 
 # AWS Solutions Constructs の CloudFront-S3 パターン
-#pip install aws-cdk.aws-s3 aws-cdk.aws-cloudfront aws-cdk.aws-s3-deployment aws-solutions-constructs.aws-cloudfront-s3
+pip install aws_solutions_constructs.aws_cloudfront_s3
 
 # 必要なパッケージがインストールされたことを確認
-#pip list
+pip list
+
+# AWS認証情報を設定（Codespacesに環境変数で設定）
+export AWS_ACCESS_KEY_ID=xxx
+export AWS_SECRET_ACCESS_KEY=xxx
+export AWS_DEFAULT_REGION=ap-northeast-1
+
+# CDK bootstrap（初回のみ）
+cdk bootstrap
+
+cdk synth
+
+cdk deploy
+
+# aws s3 cp ../index.html s3://<your-bucket-name>
