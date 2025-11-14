@@ -4,6 +4,7 @@ aws-cdk.asset-awscli-v1==2.2.242
 aws-cdk.asset-node-proxy-agent-v6==2.1.0
 aws-cdk.cloud-assembly-schema==48.18.0
 aws-solutions-constructs.aws-cloudfront-s3==2.94.0
+aws-solutions-constructs.aws-s3-lambda==2.94.0
 aws-solutions-constructs.core==2.94.0
 aws-solutions-constructs.resources==2.94.0
 cattrs==25.3.0
