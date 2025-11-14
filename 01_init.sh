@@ -41,3 +41,10 @@ pip install --upgrade pip
 pip list
 pip install -r requirements.txt
 pip list
+
+# この先
+# cd my-static-site
+# source .venv/bin/activate
+# cdk synth
+# cdk deploy
+
