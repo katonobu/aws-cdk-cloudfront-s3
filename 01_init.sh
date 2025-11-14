@@ -7,8 +7,6 @@ pip --version
 sudo apt-get update
 sudo apt-get install -y nodejs npm
 
-npm install -g npm@11.6.2
-
 # AWS CLI インストール
 curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
 unzip awscliv2.zip
@@ -33,21 +31,22 @@ pip install --upgrade pip
 pip list
 
 # AWS Solutions Constructs の CloudFront-S3 パターン
-pip install aws_solutions_constructs.aws_cloudfront_s3
+# requiremts.txtを更新したのでインストールされてるはず。
+# pip install aws_solutions_constructs.aws_cloudfront_s3
 
 # 必要なパッケージがインストールされたことを確認
-pip list
+#pip list
 
 # AWS認証情報を設定（Codespacesに環境変数で設定）
 export AWS_ACCESS_KEY_ID=xxx
 export AWS_SECRET_ACCESS_KEY=xxx
 export AWS_DEFAULT_REGION=ap-northeast-1
 
-# CDK bootstrap（初回のみ）
-cdk bootstrap
+# CDK bootstrap（アカウント、リージョンに対して1回やればよい）
+#cdk bootstrap
 
 cdk synth
 
-cdk deploy
+#cdk deploy
 
 # aws s3 cp ../index.html s3://<your-bucket-name>
