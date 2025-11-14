@@ -52,8 +52,9 @@ def main():
     print(f"Distribution ID: {distribution_id}")
     print(f"CloudFront URL: {distribution_url}")
 
-    # CloudFrontクライアントを作成
+    # s3,CloudFrontクライアントを作成
     cloudfront = boto3.client('cloudfront')
+    s3 = boto3.client('s3')
 
     ## 1回もキャッシュクリアしていなければキャッシュクリアする。
     # キャッシュ無効化リクエスト一覧を取得
@@ -69,7 +70,6 @@ def main():
     # -----------------------------
     # 2. バケットの存在確認
     # -----------------------------
-    s3 = boto3.client('s3')
     try:
         s3.head_bucket(Bucket=bucket_name)
         print("✅ バケットは存在します")
