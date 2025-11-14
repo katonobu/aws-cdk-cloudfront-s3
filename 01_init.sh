@@ -3,10 +3,6 @@ python3 --version
 pip install --upgrade pip
 pip --version
 
-# Node.js と npm が必要（CDK CLIはNode製）
-sudo apt-get update
-sudo apt-get install -y nodejs npm
-
 # AWS CLI インストール
 curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
 unzip awscliv2.zip
@@ -19,6 +15,10 @@ sudo ./aws/install
 ## Default output format: json（推奨）
 aws configure
 aws configure list
+
+# Node.js と npm が必要（CDK CLIはNode製）
+sudo apt-get update
+sudo apt-get install -y nodejs npm
 
 # AWS CDK CLI インストール
 npm install -g aws-cdk
