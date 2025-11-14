@@ -42,9 +42,15 @@ pip list
 pip install -r requirements.txt
 pip list
 
+cdk deploy
+
 # この先
+# VS-Codeでmy-static-site を開いて、.venvを指定。
+
+# あるいは、
 # cd my-static-site
 # source .venv/bin/activate
+
+# で、
 # cdk synth
 # cdk deploy
-
