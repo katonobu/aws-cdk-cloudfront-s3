@@ -42,7 +42,9 @@ pip list
 pip install -r requirements.txt
 pip list
 
-cdk deploy --require-approval never
+cdk deploy --require-approval never --outputs-file ./cdk-outputs.json
+
+python utils/check.py
 
 # この先
 # VS-Codeでmy-static-site を開いて、.venvを指定。
