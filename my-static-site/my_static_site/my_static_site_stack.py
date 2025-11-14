@@ -1,5 +1,6 @@
 import os
 from aws_cdk import (
+    CfnOutput,
     Duration,
     Stack,
     # aws_sqs as sqs,
@@ -37,7 +38,7 @@ class MyStaticSiteStack(Stack):
             runtime=_lambda.Runtime.PYTHON_3_13,
             handler="update_bkt_invalidate_cache.lambda_handler",  # ファイル名.関数名
             code=_lambda.Code.from_asset(lambda_code_path),
-            timeout=Duration.seconds(60),  # 60秒に設            
+            timeout=Duration.seconds(60),  # 60秒に設定
             environment={
                 "DISTRIBUTION_ID": distribution_id  # CloudFrontのDistribution ID
             }
@@ -63,3 +64,10 @@ class MyStaticSiteStack(Stack):
             s3n.LambdaDestination(invalidate_lambda),
             s3.NotificationKeyFilter(prefix="upload_done.flag")
         )
+
+        # CfnOutputで出力
+        CfnOutput(self, "ContentsBucketName", value=bucket.bucket_name)
+        CfnOutput(self, "DistributionId", value=distribution_id)
+        CfnOutput(self, "DistributionUrl",value=f'https://{cloudfront_s3.cloud_front_web_distribution.domain_name}/')
+        CfnOutput(self, "S3LoggingBucketName", value=cloudfront_s3.s3_logging_bucket.bucket_name)
+        CfnOutput(self, "CloudFrontLoggingBucketName", value=cloudfront_s3.cloud_front_logging_bucket.bucket_name)
