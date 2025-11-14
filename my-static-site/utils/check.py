@@ -32,6 +32,8 @@ def wait_for_stack_complete(stack_name, interval=10):
 def main():
     result = True
 
+    # 事前準備
+    ## スタックのデプロイ完了を待機
     wait_for_stack_complete(stack_name)
 
     # -----------------------------
@@ -50,10 +52,24 @@ def main():
     print(f"Distribution ID: {distribution_id}")
     print(f"CloudFront URL: {distribution_url}")
 
+    # s3,CloudFrontクライアントを作成
+    cloudfront = boto3.client('cloudfront')
+    s3 = boto3.client('s3')
+
+    ## 1回もキャッシュクリアしていなければキャッシュクリアする。
+    # キャッシュ無効化リクエスト一覧を取得
+    response = cloudfront.list_invalidations(DistributionId=distribution_id)
+    while 0 == len(response.get('InvalidationList', {}).get('Items', [])):
+        s3.put_object(Bucket=bucket_name, Key=invalidate_trigger_file_name, Body="", ContentType='binary/octet-stream')
+        print("✅ 初回キャッシュInvalidateトリガのファイルを更新しました")
+        print("キャッシュクリア待機中...")
+        time.sleep(30)  # 実際はInvalidation完了をポーリングするのがベスト
+        response = cloudfront.list_invalidations(DistributionId=distribution_id)
+    print("✅ キャッシュ無効化リクエストが存在します")
+
     # -----------------------------
     # 2. バケットの存在確認
     # -----------------------------
-    s3 = boto3.client('s3')
     try:
         s3.head_bucket(Bucket=bucket_name)
         print("✅ バケットは存在します")
@@ -78,6 +94,13 @@ def main():
         exit(1)
 
     # -----------------------------
+    # 4. バケットのファイルを書き換える前にhttps経由の内容を確認
+    # -----------------------------
+    url = f"{distribution_url}{dynamic_file_name}"
+    response_before_update = requests.get(url)
+    print("書き換え前のURL内容:", response_before_update.text[:100], "...")
+
+    # -----------------------------
     # 4. バケットのファイルを書き換える
     # -----------------------------
     new_content = '[{"hoge": "fuga"}]'
@@ -94,24 +117,22 @@ def main():
 
     print("Invalidate前のURL内容:", response_after_update.text[:100], "...")
     if response_after_update.text != new_content:
-        print("✅ キャッシュが効いています（古い内容）")
+        print("✅ 書き換えたファイルが見えていません(キャッシュが効いています）")
+        if response_after_update.text == response_before_update.text:
+            print("✅ 書き換え前のhttpsアクセスの内容と同じです(キャッシュが効いています）")
+        else:
+            print("❌ 書き換え前のhttpsアクセスの内容と異なります")
+            result = False
     else:
         print("⚠ キャッシュが効いていない（新しい内容）")
         result = False
-
-    # CloudFrontクライアントを作成
-    cloudfront = boto3.client('cloudfront')
 
     # キャッシュ無効化リクエスト一覧を取得
     response = cloudfront.list_invalidations(DistributionId=distribution_id)
     # 結果を表示
     sorted_items = sorted([item for item in response.get('InvalidationList', {}).get('Items', [])], key=lambda x: x['CreateTime'], reverse=True)
-    if 0 < len(sorted_items):
-        prev_latest = sorted([item for item in response.get('InvalidationList', {}).get('Items', [])], key=lambda x: x['CreateTime'], reverse=True)[0]
-        print(f'   キャッシュ無効化前最終リクエスト作成時間:{prev_latest["CreateTime"]}')
-    else:
-        prev_latest = {'Id': None}
-        print("   キャッシュ無効化前最終リクエストなし")
+    prev_latest = sorted([item for item in response.get('InvalidationList', {}).get('Items', [])], key=lambda x: x['CreateTime'], reverse=True)[0]
+    print(f'   キャッシュ無効化前最終リクエスト作成時間:{prev_latest["CreateTime"]}')
 
     # -----------------------------
     # 6. CloudFrontキャッシュをInvalidate
@@ -140,18 +161,12 @@ def main():
 
                 # キャッシュ無効化リクエスト一覧を取得
                 response = cloudfront.list_invalidations(DistributionId=distribution_id)
-                # 結果を表示
-                if 0 < len(sorted_items):
-                    post_latest = sorted([item for item in response.get('InvalidationList', {}).get('Items', [])], key=lambda x: x['CreateTime'], reverse=True)[0]
-                    print(f'   キャッシュ無効化後最終リクエスト作成時間:{post_latest["CreateTime"]}')
-                    if prev_latest.get('Id') != post_latest.get('Id'):
-                        print("✅ 新しいキャッシュ無効化リクエストが確認できました")
-                    else:
-                        print("❌ 新しいキャッシュ無効化リクエストが確認できません")
-                        result = False
+                post_latest = sorted([item for item in response.get('InvalidationList', {}).get('Items', [])], key=lambda x: x['CreateTime'], reverse=True)[0]
+                print(f'   キャッシュ無効化後最終リクエスト作成時間:{post_latest["CreateTime"]}')
+                if prev_latest.get('Id') != post_latest.get('Id'):
+                    print("✅ 新しいキャッシュ無効化リクエストが確認できました")
                 else:
-                    post_latest = {'Id': None}
-                    print("❌ キャッシュ無効化前最終リクエストなし")
+                    print("❌ 新しいキャッシュ無効化リクエストが確認できません")
                     result = False
             else:
                 print("❌ バケットの内容とhttp経由の内容が一致しません")
