@@ -6,13 +6,13 @@ from aws_cdk import (
     Stack,
     # aws_sqs as sqs,
     aws_lambda as _lambda,
+    aws_iam as iam,
     aws_s3 as s3,
     aws_s3_notifications as s3n,
     aws_s3_deployment as s3deploy,
 )
 from constructs import Construct
 from aws_solutions_constructs.aws_cloudfront_s3 import CloudFrontToS3
-from aws_solutions_constructs.aws_s3_lambda import S3ToLambda
 from aws_cdk import aws_iam as iam
 
 def github_oidc_exists():
@@ -45,7 +45,7 @@ class MyStaticSiteStack(Stack):
         # CloudFront + S3の構成を作成
         cloudfront_s3 = CloudFrontToS3(self, 'my_static_site')
         bucket = cloudfront_s3.s3_bucket
-        distribution_id = cloudfront_s3.cloud_front_web_distribution.distribution_id
+        distribution = cloudfront_s3.cloud_front_web_distribution
 
         # S3へ静的ファイルをデプロイ
         s3deploy.BucketDeployment(self, "DeployWebsite",
@@ -63,7 +63,7 @@ class MyStaticSiteStack(Stack):
             code=_lambda.Code.from_asset(lambda_code_path),
             timeout=Duration.seconds(60),  # 60秒に設定
             environment={
-                "DISTRIBUTION_ID": distribution_id  # CloudFrontのDistribution ID
+                "DISTRIBUTION_ID": distribution.distribution_id  # CloudFrontのDistribution ID
             }
         )
 
@@ -78,7 +78,7 @@ class MyStaticSiteStack(Stack):
         # CloudFront権限付与（CreateInvalidation）
         invalidate_lambda.add_to_role_policy(iam.PolicyStatement(
             actions=["cloudfront:CreateInvalidation"],
-            resources=[cloudfront_s3.cloud_front_web_distribution.distribution_arn]
+            resources=[distribution.distribution_arn]
         ))
 
         # S3イベント通知（prefixフィルタ付き）
@@ -124,7 +124,7 @@ class MyStaticSiteStack(Stack):
 
         # CfnOutputで出力
         CfnOutput(self, "ContentsBucketName", value=bucket.bucket_name)
-        CfnOutput(self, "DistributionId", value=distribution_id)
-        CfnOutput(self, "DistributionUrl",value=f'https://{cloudfront_s3.cloud_front_web_distribution.domain_name}/')
+        CfnOutput(self, "DistributionId", value=distribution.distribution_id)
+        CfnOutput(self, "DistributionUrl",value=f'https://{distribution.domain_name}/')
         CfnOutput(self, "S3LoggingBucketName", value=cloudfront_s3.s3_logging_bucket.bucket_name)
         CfnOutput(self, "CloudFrontLoggingBucketName", value=cloudfront_s3.cloud_front_logging_bucket.bucket_name)
