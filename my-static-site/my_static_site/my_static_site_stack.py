@@ -1,4 +1,5 @@
 import os
+import boto3
 from aws_cdk import (
     CfnOutput,
     Duration,
@@ -13,6 +14,28 @@ from constructs import Construct
 from aws_solutions_constructs.aws_cloudfront_s3 import CloudFrontToS3
 from aws_solutions_constructs.aws_s3_lambda import S3ToLambda
 from aws_cdk import aws_iam as iam
+
+def github_oidc_exists():
+    """
+    GitHub Actions用OIDCプロバイダーが存在するか判定。
+    """
+    iam_client = boto3.client('iam')
+    target_url = "token.actions.githubusercontent.com"
+
+    try:
+        providers = iam_client.list_open_id_connect_providers()
+        for provider in providers.get("OpenIDConnectProviderList", []):
+            arn = provider["Arn"]
+            details = iam_client.get_open_id_connect_provider(OpenIDConnectProviderArn=arn)
+            print(details.get("Url"))
+            if details.get("Url").endswith(target_url):
+                print(f"✅ GitHub Actions OIDCプロバイダーが存在します: {arn}")
+                return arn
+        print("❌ GitHub Actions OIDCプロバイダーは存在しません")
+        return None
+    except Exception as e:
+        print("❌ 判定処理でエラー:", e)
+        return None
 
 class MyStaticSiteStack(Stack):
 
@@ -64,6 +87,40 @@ class MyStaticSiteStack(Stack):
             s3n.LambdaDestination(invalidate_lambda),
             s3.NotificationKeyFilter(prefix="upload_done.flag")
         )
+
+        oidc_provider_arn = github_oidc_exists()
+        if oidc_provider_arn is not None:
+            # GitHub Actions用IAMロールを作成（S3書き込み権限付き）
+            github_role = iam.Role(self, "GitHubActionsRole",
+                assumed_by=iam.FederatedPrincipal(
+                    federated=oidc_provider_arn,
+                    conditions={
+                        "StringEquals": {
+                            "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
+                        },
+                        "StringLike": {
+                            "token.actions.githubusercontent.com:sub": [
+                                "repo:katonobu/get-weather-charts:*",
+                                "repo:katonobu/get-weather-charts:*"
+                            ]
+                        }
+                    },
+                    assume_role_action="sts:AssumeRoleWithWebIdentity"
+                ),
+                description="Role for GitHub Actions to deploy to S3"
+            )
+
+            # S3バケットへの書き込み権限を付与
+            github_role.add_to_policy(iam.PolicyStatement(
+                actions=[
+                    "s3:PutObject",
+                    "s3:PutObjectAcl",
+                    "s3:DeleteObject"
+                ],
+                resources=[bucket.arn_for_objects("*")]
+            ))
+            # IAMロールのARNをCloudFormation出力
+            CfnOutput(self, "GitHubRoleArn", value=github_role.role_arn)
 
         # CfnOutputで出力
         CfnOutput(self, "ContentsBucketName", value=bucket.bucket_name)
