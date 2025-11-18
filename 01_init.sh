@@ -46,6 +46,8 @@ cdk deploy --require-approval never --outputs-file ./cdk-outputs.json
 
 python utils/check.py
 
+# aws s3 cp s3://weather-charts-viewer-gha s3://mystaticsitestack-staticwebbucketxxxxxxx --recursive
+
 # この先
 # VS-Codeでmy-static-site を開いて、.venvを指定。
 
