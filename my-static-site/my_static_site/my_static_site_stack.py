@@ -44,12 +44,35 @@ class MyStaticSiteStack(Stack):
     def __init__(self, scope: Construct, id: str, **kwargs) -> None:
         super().__init__(scope, id, **kwargs)
 
+        exiprei_days = 0 # オブジェクト削除のための経過日数設定
+
         # S3バケット（完全非公開）
         bucket = s3.Bucket(
             self, "StaticWebBucket",
             removal_policy=RemovalPolicy.DESTROY,
             auto_delete_objects=True,
-            block_public_access=s3.BlockPublicAccess.BLOCK_ALL
+            block_public_access=s3.BlockPublicAccess.BLOCK_ALL,
+            lifecycle_rules=[
+                s3.LifecycleRule(
+                    id="DeleteTaggedObjectsAfterSpecifiedDays",
+                    enabled=True,
+                    tag_filters={"expire": "true"},  # タグで対象を絞る
+                    expiration=Duration.days(exiprei_days + 1)
+                )
+            ]            
+        )
+
+        # キャッシュポリシーを作成（TTLを非常に長く設定）
+        cache_policy = cloudfront.CachePolicy(
+            self,
+            "LongLivedCachePolicy",
+            cache_policy_name="LongLivedCachePolicy",
+            comment="Cache forever for static files",
+            default_ttl=Duration.days(3650),  # 10年間
+            min_ttl=Duration.days(3650),
+            max_ttl=Duration.days(3650),
+            enable_accept_encoding_gzip=True,
+            enable_accept_encoding_brotli=True
         )
 
         distribution = cloudfront.Distribution(
@@ -57,7 +80,8 @@ class MyStaticSiteStack(Stack):
             "StaticWebDistribution",            
             default_behavior=cloudfront.BehaviorOptions(
                 origin=origins.S3BucketOrigin.with_origin_access_control(bucket),
-                viewer_protocol_policy=cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS
+                viewer_protocol_policy=cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+                cache_policy=cache_policy
             ),
             default_root_object="index.html"
         )
