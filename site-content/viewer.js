@@ -11,19 +11,15 @@ document.addEventListener("DOMContentLoaded", () => {
             return response.json();
         })
         .then(data => {
+            const titleEle = document.getElementById("title");
+            titleEle.textContent = data["title"]
+
             const releasedEle = document.getElementById("released");
-            releasedEle.textContent = data["title"]
+            releasedEle.textContent = data["released_at_j"]
 
             const itemContainer = document.getElementById("index_link");
             items = data["files"]
             items.forEach(item => {
-                /*
-    {
-      "id": "tanki_yoho",
-      "name": "kaisetsu_tanki.svg",
-      "title": "短期予報解説資料"
-    },
-                */
                 // <li>要素生成
                 const li = document.createElement("li");
                 const a = document.createElement("a");

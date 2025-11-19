@@ -20,19 +20,17 @@ document.addEventListener("DOMContentLoaded", () => {
                 // タイムスタンプ文字列
                 const timeStampStr = `${year}年${month}月${day}日 ${hour}時${min}分`;
 
-                // <li>要素生成
-                const li = document.createElement("li");
-                const a = document.createElement("a");
                 // タイトル判定
                 let title;
                 if (dir.endsWith("00")) {
                     title = `${timeStampStr} 週間天気予報解説資料`;
-                    a.href = `./${dir}/index.html`;
                 } else {
                     title = `${timeStampStr} 短期予報解説資料`;
-                    a.href = `viewer_short.html?dir=${dir}`;
                 }
-
+                // <li>要素生成
+                const li = document.createElement("li");
+                const a = document.createElement("a");
+                a.href = `viewer.html?dir=${dir}`;
                 a.target = "_blank";
                 a.textContent = title;
 
